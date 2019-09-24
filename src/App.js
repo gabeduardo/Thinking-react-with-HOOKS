@@ -1,5 +1,66 @@
-import React, { Component } from 'react'
+import React, { Component, useContext } from 'react'
 import './App.css'
+
+
+
+// creating an AppContext, and this context can be access in any Component
+const AppContext = React.createContext();
+
+
+// Eniminated FilterableProductTable and converted into a ProductTableProvider
+
+
+class ProducTableProvider extends React.Component {
+
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      filterText: '',
+      inStockOnly: false,
+      products: { PRODUCTS },
+
+
+      //methods on state and converted with an arrow function to autobind it
+
+
+      handleFilterTextChange: (filterText) => {
+        this.setState({ filterText: filterText })
+
+
+      },
+
+      handleInStockChange: (inStockOnly) => {
+        this.setState({ inStockOnly: inStockOnly })
+      }
+
+
+    }
+
+
+
+
+  } //end constructor
+
+
+  render() {
+    return (
+      //sigue siendo un compoentne presentacional pero 
+      // retorno el AppContext que cree arriba y hago un grap de los elementos con el this.props.children
+      // asi puedo hacer wrap del state
+      <AppContext.Provider value={this.state}>
+        {this.props.children}
+      </AppContext.Provider>
+
+
+    );
+
+  }
+
+
+
+}
+
 
 // Composability: Level 3
 class ProductCategoryRow extends React.Component {
@@ -35,146 +96,108 @@ class ProductRow extends React.Component {
 }
 
 // Composability: Level 2
-class ProductTable extends React.Component {
-  render() {
-    const filterText = this.props.filterText;
-    const inStockOnly = this.props.inStockOnly;
 
-    const rows = [];
-    let lastCategory = null;
+const ProductTable = () => {
 
-    this.props.products.forEach((product) => {
-      if (product.name.indexOf(filterText) === -1) {
-        return;
-      }
-      if (inStockOnly && !product.stocked) {
-        return;
-      }
-      if (product.category !== lastCategory) {
-        rows.push(
+  //como necesito crear varibales antes del JSX uso la funcion useContext
+  const context = useContext(AppContext)
+  const filterText = context.filterText;
+  const inStockOnly = context.inStockOnly;
 
-          // Props: Level 3
-          <ProductCategoryRow
-            category={product.category}
-            key={product.category} />
-        );
-      }
+  // const filterText = this.props.filterText;
+  // const inStockOnly = this.props.inStockOnly;
+
+  const rows = [];
+  let lastCategory = null;
+
+  context.products.PRODUCTS.forEach((product) => {
+    if (product.name.indexOf(filterText) === -1) {
+      return;
+    }
+    if (inStockOnly && !product.stocked) {
+      return;
+    }
+    if (product.category !== lastCategory) {
       rows.push(
-        // Props: Level 3
-        <ProductRow
-          product={product}
-          key={product.name}
-        />
-      );
-      lastCategory = product.category;
-    });
 
-    return (
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody>{rows}</tbody>
-      </table>
+        // Props: Level 3
+        <ProductCategoryRow
+          category={product.category}
+          key={product.category} />
+      );
+    }
+    rows.push(
+      // Props: Level 3
+      <ProductRow
+        product={product}
+        key={product.name}
+      />
     );
-  }
+    lastCategory = product.category;
+  });
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>
+  );
+
 }
 
 // Composability: Level 2
 class SearchBar extends React.Component {
-  constructor(props) {
-    super(props);
-    // Reactivity: callbacks which flow down to this child user interface component
-    this.handleFilterTextChange = this.handleFilterTextChange.bind(this);
-    this.handleInStockChange = this.handleInStockChange.bind(this);
-  }
-
-  handleFilterTextChange(e) {
-    this.props.onFilterTextChange(e.target.value);
-  }
-
-  handleInStockChange(e) {
-    this.props.onInStockChange(e.target.checked);
-  }
+  // ya no debo crear state de la clase ni constructor ni instancia props ni pasar los callbacks a los
+  // metodos sino que puedo llamarlos con inline functions en el context
 
   render() {
     return (
-      <form>
-        <input
-          type="text"
-          placeholder="Search..."
-          value={this.props.filterText}
-          // Reactivity: callback which will bubble up user interaction event values
-          onChange={this.handleFilterTextChange}
-        />
-        <p>
-          <input
-            type="checkbox"
-            checked={this.props.inStockOnly}
-            // Reactivity: callback which will bubble up user interaction event values
-            onChange={this.handleInStockChange}
-          />
-          {' '}
-          Only show products in stock
-                    </p>
-      </form>
+
+      //consumo el estado que me da el provider 
+
+
+      <AppContext.Consumer>
+
+        {/* ya no debo usar el this.props sino que directamente acceso el context que ya trae esos elementpos del state */}
+
+        {context =>
+
+          <form>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={context.filterText}
+              // Reactivity: callback which will bubble up user interaction event values
+              onChange={e => context.handleFilterTextChange(e.target.value)}
+            />
+            <p>
+              <input
+                type="checkbox"
+                checked={context.inStockOnly}
+                // Reactivity: callback which will bubble up user interaction event values
+                onChange={e => context.handleInStockChange(e.target.checked)}
+              />
+              {' '}
+              Only show products in stock
+                  </p>
+          </form>
+        }
+
+
+      </AppContext.Consumer>
+
+
+
+
     );
   }
 }
 
-// Composability: Level 1
-class FilterableProductTable extends React.Component {
-  constructor(props) {
-    super(props);
-    // State
-    this.state = {
-      filterText: '',
-      inStockOnly: false
-    };
-
-    this.handleFilterTextChange = this.handleFilterTextChange.bind(this);
-    this.handleInStockChange = this.handleInStockChange.bind(this);
-  }
-
-  handleFilterTextChange(filterText) {
-    // Reactivity: this is the event handler triggered via callbacks which flow down to child user interface components
-    this.setState({
-      filterText: filterText
-    });
-  }
-
-  handleInStockChange(inStockOnly) {
-    // Reactivity: this is the event handler triggered via callbacks which flow down to child user interface components
-    this.setState({
-      inStockOnly: inStockOnly
-    })
-  }
-
-  render() {
-    return (
-      <div>
-        {/* State: passed as props */}
-        <SearchBar
-          filterText={this.state.filterText}
-          inStockOnly={this.state.inStockOnly}
-          // Reactivity: callbacks which flow down to child user interface components
-          onFilterTextChange={this.handleFilterTextChange}
-          onInStockChange={this.handleInStockChange}
-        />
-        {/* Props: Level 2 */}
-        {/* State: passed as props */}
-        <ProductTable
-          products={this.props.products}
-          filterText={this.state.filterText}
-          inStockOnly={this.state.inStockOnly}
-        />
-      </div>
-    );
-  }
-}
 
 // Data Model, natural breakdown into components 
 const PRODUCTS = [
@@ -189,8 +212,16 @@ const PRODUCTS = [
 class App extends Component {
   render() {
     return (
-      // Props: Level 1
-      <FilterableProductTable products={PRODUCTS} />
+      // Provider creado que ahora hace wraps de los otros dos componentes directamente
+      //asi no tengo que pasar el estado como props pues ya paso el estado en el provider 
+      //haciendo el wrap
+
+      <ProducTableProvider>
+
+        <SearchBar />
+        <ProductTable />
+
+      </ProducTableProvider>
     );
   }
 }
