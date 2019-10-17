@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import './App.css'
 
 
@@ -217,26 +217,46 @@ const SearchBar = (props) => {
   // agarro el context desde el useContext
 
   const context = useContext(AppContext);
+  const [thetime, setTheTime] = useState(new Date())
+
+
+  //Para poder hacer el didmount y will unmount
+  useEffect(() => {
+    // did mount
+    const ticker = setInterval(() => seizeTheTime(), 1000);
+    // will unmount (with return)
+    return function cleanup() {
+      clearInterval(ticker);
+    }
+
+    function seizeTheTime() {
+      setTheTime(new Date())
+    }
+  })
   return (
-    <form>
-      <input
-        type="text"
-        placeholder="Search..."
-        value={context.filterText}
-        // Reactivity: callback which will bubble up user interaction event values
-        onChange={e => context.handleFilterTextChange(e.target.value)}
-      />
-      <p>
+    <>
+
+      <form>
         <input
-          type="checkbox"
-          checked={context.inStockOnly}
+          type="text"
+          placeholder="Search..."
+          value={context.filterText}
           // Reactivity: callback which will bubble up user interaction event values
-          onChange={e => context.handleInStockChange(e.target.checked)}
+          onChange={e => context.handleFilterTextChange(e.target.value)}
         />
-        {' '}
-        Only show products in stock
+        <p>
+          <input
+            type="checkbox"
+            checked={context.inStockOnly}
+            // Reactivity: callback which will bubble up user interaction event values
+            onChange={e => context.handleInStockChange(e.target.checked)}
+          />
+          {' '}
+          Only show products in stock
                     </p>
-    </form>
+      </form>
+    </>
+
   )
 
 }
